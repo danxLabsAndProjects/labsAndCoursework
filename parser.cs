@@ -11,7 +11,8 @@ namespace ConsoleApp1
     {
 
         private List<Word> tokenList = new List<Word>();
-
+        private int offset = 0;
+        private static Sentences[] lineArray;
         public static string[] typeArr =
             {
             "register32",
@@ -42,7 +43,7 @@ namespace ConsoleApp1
                     char ch = '\0';
                     int column = 0, row = 0;
 
-                    string dividers = "+-:/*[],";
+                    string dividers = "+-:/*[],()";
 
                     if (!reader.EndOfStream)
                     {
@@ -129,11 +130,94 @@ namespace ConsoleApp1
             }
         }
 
+        private void fillSentenseArray()
+        {
+            lineArray = new Sentences[tokenList[tokenList.Count - 1].Column];
+            int i = 0;
+            int currentColumn = 1;
+            string errorMessage = null; 
+            while(tokenList.Count - 1 >= i)
+            {
+                List<Word> lineList = new List<Word>();
+
+                for(;i < tokenList.Count && tokenList[i].Column == currentColumn; i++)
+                {
+                    lineList.Add(new Word(tokenList[i]));
+                    if(tokenList[i].GetTypeWord() == typeArr[12])
+                    {
+                        errorMessage = "error type of one of operands";
+                    }
+                }
+                if (errorMessage != null)
+                {
+                    lineArray[currentColumn - 1] = new Sentences(lineList, currentColumn,errorMessage);
+                    currentColumn++;
+                    errorMessage = null;
+                    continue;
+                }
+                lineArray[currentColumn - 1] = new Sentences(lineList, currentColumn);
+                currentColumn++;
+
+            }
+            
+            for (int c = 0; c < lineArray.Length; c++)
+            {
+                lineArray[c].printLine();
+            }
+            
+        }
+
+        public void testc(string fileName)
+        {
+            fillSentenseArray();
+            listingCreate(fileName);
+        }
+        private void listingCreate(string fileName)
+        {
+            int offsetPrev = offset;
+            List<Vars> vars = new List<Vars>();
+            List<Vars> varsUnchecked = new List<Vars>();
+            string seg = null;
+            
+            for (int i = 0; i < lineArray.Length; i++)
+            {
+
+                offset += lineArray[i].OffsetFinding(vars, varsUnchecked, offsetPrev);
+                offsetPrev = offset;
+
+            }
+            if (varsUnchecked.Count != 0)
+            {
+                string error = "error jump in nowhere";
+                for (int i = 0; i < varsUnchecked.Count; i++)
+                {
+                    lineArray[varsUnchecked[i].Column - 1].SetError(error);
+                }
+
+            }
+
+
+            for (int i = 0; i < lineArray.Length; i++)
+            {
+                Console.WriteLine(lineArray[i]);
+            }
+            using (FileStream file = new FileStream(fileName, FileMode.Truncate, FileAccess.Write))
+            {
+                using (StreamWriter writer = new StreamWriter(file))
+                {
+                    for (int i = 0; i < lineArray.Length; i++)
+                    {
+                        writer.WriteLine(lineArray[i].ToString());
+                    }
+                }
+            }
+        }
+
+
         public void lineAnalyzer(string fileName)
         {
             int i = 0;
             int curentColumn = 1;
-
             using (FileStream file = new FileStream(fileName, FileMode.Truncate, FileAccess.Write))
             {
                 using (StreamWriter writer = new StreamWriter(file))
@@ -145,7 +229,7 @@ namespace ConsoleApp1
                     {
                         List<Word> lineList = new List<Word>();
                         int indexOfComa = -1;
-                        for (int j = 0; i < tokenList.Count && tokenList[i].Column == curentColumn; i++)
+                        for (int j = 0; i < tokenList.Count  && tokenList[i].Column == curentColumn; i++)
                         {
                             lineList.Add(new Word(tokenList[i]));
                             if (tokenList[i].Token == ",")
@@ -165,9 +249,11 @@ namespace ConsoleApp1
 
                         writer.Write($"{curentColumn}. ");
 
-                        foreach (Word s in lineList)
+                        var token = lineList.Select(t => t.Token);
+
+                        foreach (var s in token)
                         {
-                            writer.Write(s.Token + " ");
+                            writer.Write(s + " ");
                         }
 
                         writer.WriteLine();
@@ -180,7 +266,7 @@ namespace ConsoleApp1
                         if (k >= 1)
                         {
 
-                            if (lineList[0].GetType() == typeArr[2])
+                            if (lineList[0].GetTypeWord() == typeArr[2])
                             {
                                 if (lineList[0].Token.ToLower() == "stc" && k == 1)
                                 {
@@ -188,13 +274,13 @@ namespace ConsoleApp1
                                     curentColumn++;
                                     continue;
                                 }
-                                if (k > 1 && (lineList[1].GetType() == typeArr[0] ||
-                                    lineList[1].GetType() == typeArr[1] ||
-                                    lineList[1].GetType() == typeArr[4] ||
-                                    lineList[1].GetType() == typeArr[5] ||
-                                    lineList[1].GetType() == typeArr[6] ||
-                                    lineList[1].GetType() == typeArr[7] ||
-                                    lineList[1].GetType() == typeArr[8]))
+                                if (k > 1 && (lineList[1].GetTypeWord() == typeArr[0] ||
+                                    lineList[1].GetTypeWord() == typeArr[1] ||
+                                    lineList[1].GetTypeWord() == typeArr[4] ||
+                                    lineList[1].GetTypeWord() == typeArr[5] ||
+                                    lineList[1].GetTypeWord() == typeArr[6] ||
+                                    lineList[1].GetTypeWord() == typeArr[7] ||
+                                    lineList[1].GetTypeWord() == typeArr[8]))
                                 {
                                     if (indexOfComa >= 0)
                                     {
@@ -210,21 +296,21 @@ namespace ConsoleApp1
                                 }
                             }
 
-                            if (lineList[0].GetType() == typeArr[8] && k > 1)
+                            if (lineList[0].GetTypeWord() == typeArr[8] && k > 1)
                             {
                                 if (k >= 3)
                                 {
-                                    if (lineList[1].GetType() == typeArr[2] &&
-                                    (lineList[2].GetType() == typeArr[0] ||
-                                    lineList[2].GetType() == typeArr[1] ||
-                                    lineList[2].GetType() == typeArr[8]))
+                                    if (lineList[1].GetTypeWord() == typeArr[2] &&
+                                    (lineList[2].GetTypeWord() == typeArr[0] ||
+                                    lineList[2].GetTypeWord() == typeArr[1] ||
+                                    lineList[2].GetTypeWord() == typeArr[8]))
                                     {
                                         writer.WriteLine($"<name> sz = 1,pos = 1.<mnem>sz = 1,pos = 2.<op>sz=" +
                                             $"{k - 2} ,pos = 3");
                                         curentColumn++;
                                         continue;
                                     }
-                                    if (lineList[1].GetType() == typeArr[4])
+                                    if (lineList[1].GetTypeWord() == typeArr[4])
                                     {
                                         writer.WriteLine($"<name>: sz = 1,pos = 1.<mnem>sz = 1,pos = 2.<op>sz=" +
                                             $"{k - 2} ,pos = 3");
@@ -233,7 +319,7 @@ namespace ConsoleApp1
                                     }
                                 }
 
-                                if (k == 2 && lineList[1].GetType() == typeArr[3])
+                                if (k == 2 && lineList[1].GetTypeWord() == typeArr[3])
                                 {
                                     writer.WriteLine("<name>: sz = 1,pos = 1.<mnem>sz = 1,pos = 2");
                                     curentColumn++;
@@ -258,14 +344,14 @@ namespace ConsoleApp1
                                         continue;
                                     }
 
-                                    if (k >= 3 && lineList[2].GetType() == typeArr[2] &&
-                                    (lineList[3].GetType() == typeArr[0] ||
-                                    lineList[3].GetType() == typeArr[1] ||
-                                    lineList[3].GetType() == typeArr[4] ||
-                                    lineList[3].GetType() == typeArr[5] ||
-                                    lineList[3].GetType() == typeArr[6] ||
-                                    lineList[3].GetType() == typeArr[7] ||
-                                    lineList[3].GetType() == typeArr[8]))
+                                    if (k >= 3 && lineList[2].GetTypeWord() == typeArr[2] &&
+                                    (lineList[3].GetTypeWord() == typeArr[0] ||
+                                    lineList[3].GetTypeWord() == typeArr[1] ||
+                                    lineList[3].GetTypeWord() == typeArr[4] ||
+                                    lineList[3].GetTypeWord() == typeArr[5] ||
+                                    lineList[3].GetTypeWord() == typeArr[6] ||
+                                    lineList[3].GetTypeWord() == typeArr[7] ||
+                                    lineList[3].GetTypeWord() == typeArr[8]))
                                     {
                                         if (indexOfComa >= 0)
                                         {
@@ -284,7 +370,7 @@ namespace ConsoleApp1
 
 
                             }
-                            if (lineList[0].GetType() == typeArr[3])
+                            if (lineList[0].GetTypeWord() == typeArr[3])
                             {
                                 writer.WriteLine("<mnemcom> sz = 1,pos = 1");
                                 curentColumn++;

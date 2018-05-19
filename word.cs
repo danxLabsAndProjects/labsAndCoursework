@@ -32,14 +32,14 @@ namespace ConsoleApp1
                 this.Token = word.Token;
                 this.Column = word.Column;
                 this.Row = word.Row;
-                this.type = word.GetType();
+                this.type = word.GetTypeWord();
             }
             public override string ToString()
             {
                 return "\t" + Token + " " + Column + " " + Row + " " + type;
             }
 
-            public string GetType()
+            public string GetTypeWord()
             {
                 return type;
             }
@@ -49,13 +49,13 @@ namespace ConsoleApp1
             {
                 lexem = lexem.ToLower();
 
-                string[] registers32 = { "eax", "ebx", "ecx", "edx" };
+                string[] registers32 = { "eax", "ebx", "ecx", "edx","esi","edi","ebp","esp" };
                 string[] registers8 = { "ah", "al", "bh", "bl", "ch", "cl", "dh", "dl" };
                 string[] commands = { "stc", "inc", "dec", "sbb", "and", "mov", "or", "jnle" };
                 string[] derectives = { "segment", "ends", "end" };
                 string[] typesOfVars = { "db", "dw", "dd", "byte", "word", "dword" };
                 string[] segmentRegistres = { "cs", "ds", "ss", "es" };
-                string[] singleSymbols = { "+", "-", "/", "*", "[", "]", ":", ";", "," };
+                string[] singleSymbols = { "+", "-", "/", "*", "[", "]", ":", ";", ",","(",")" };
 
                 bool determinated = false;
 
